@@ -6,7 +6,7 @@ import lombok.NoArgsConstructor;
 
 @Data
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class Coupon {
+public class Goods {
 
     private Long id;
 
@@ -17,7 +17,7 @@ public class Coupon {
      */
     private Long availableStock;
 
-    public Coupon(String name, Long availableStock) {
+    public Goods(String name, Long availableStock) {
         this.name = name;
         this.availableStock = availableStock;
     }

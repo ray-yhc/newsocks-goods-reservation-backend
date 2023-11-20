@@ -1,8 +1,8 @@
 package goods.newsocks;
 
-import goods.newsocks.app.coupon.Coupon;
-import goods.newsocks.app.coupon.CouponDecreaseService;
-import goods.newsocks.app.coupon.Repository.CouponRepository;
+import goods.newsocks.app.coupon.Goods;
+import goods.newsocks.app.coupon.ReservationDecreaseService;
+import goods.newsocks.app.coupon.Repository.ReservationRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -18,12 +18,12 @@ import static org.assertj.core.api.Assertions.assertThat;
 @SpringBootTest
 class NewsocksApplicationTests {
 
-    Coupon coupon;
+    Goods goods;
 
     @Autowired
-    CouponRepository couponRepository;
+    ReservationRepository reservationRepository;
     @Autowired
-    CouponDecreaseService couponDecreaseService;
+    ReservationDecreaseService reservationDecreaseService;
 
     @Test
     void contextLoads() {
@@ -31,22 +31,22 @@ class NewsocksApplicationTests {
 
     @BeforeEach
     void setUp() {
-        coupon = new Coupon("KURLY_001", 100L);
-        couponRepository.save(coupon);
+        goods = new Goods("NEWSOCKS_001", 100L);
+        reservationRepository.save(goods);
     }
 
     /**
-     * Feature: 쿠폰 차감 동시성 테스트
+     * Feature: 굿즈 예약동시성 테스트
      * Background
-     *     Given KURLY_001 라는 이름의 쿠폰 100장이 등록되어 있음
+     *     Given 굿즈 100개가 등록되어 있음
      * <p>
-     * Scenario: 100장의 쿠폰을 100명의 사용자가 동시에 접근해 발급 요청함
-     *           Lock의 이름은 쿠폰명으로 설정함
+     * Scenario: 100개의 굿즈를 200명의 사용자가 동시에 접근해 예약 요청함
      * <p>
-     * Then 사용자들의 요청만큼 정확히 쿠폰의 개수가 차감되어야 함
+     * Then 1. 정확히 100개의 굿즈만 예약되어야 함
+     *      2. 예약 완료순서가 일치되어야 함
      */
     @Test
-    void 쿠폰차감_분산락_적용_동시성100명_테스트() throws InterruptedException {
+    void 뉴삭스_굿즈_예약_동시성100명_테스트() throws InterruptedException {
         int numberOfThreads = 200;
         AtomicInteger reservedThreads = new AtomicInteger();
         ExecutorService executorService = Executors.newFixedThreadPool(numberOfThreads);
@@ -56,7 +56,7 @@ class NewsocksApplicationTests {
             executorService.submit(() -> {
                 try {
                     // 분산락 적용 메서드 호출 (락의 key는 쿠폰의 name으로 설정)
-                    boolean success = couponDecreaseService.couponDecrease(coupon.getName(), coupon.getId());
+                    boolean success = reservationDecreaseService.couponDecrease(goods.getName(), goods.getId());
                     if (success) reservedThreads.getAndIncrement();
                 } finally {
                     latch.countDown();
@@ -66,12 +66,12 @@ class NewsocksApplicationTests {
 
         latch.await();
 
-        Coupon persistCoupon = couponRepository.findById(coupon.getId())
+        Goods persistGoods = reservationRepository.findById(goods.getId())
                 .orElseThrow(IllegalArgumentException::new);
 
-        assertThat(persistCoupon.getAvailableStock()).isZero();
+        assertThat(persistGoods.getAvailableStock()).isZero();
         assertThat(reservedThreads.get()).isEqualTo(100);
-        System.out.println("잔여 쿠폰 개수 = " + persistCoupon.getAvailableStock());
+        System.out.println("잔여 굿즈 개수 = " + persistGoods.getAvailableStock());
     }
 
 }
